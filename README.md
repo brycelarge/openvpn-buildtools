@@ -16,7 +16,7 @@ A file-only repository containing **OpenVPN + Privoxy** s6-overlay service defin
 In the downstream `Dockerfile`, during the final stage:
 
 ```dockerfile
-ARG OPENVPN_TOOLS_REF=master
+ARG OPENVPN_TOOLS_REF=main
 
 RUN apk add --no-cache git && \
     git clone --depth 1 --branch "${OPENVPN_TOOLS_REF}" \
@@ -90,7 +90,7 @@ devices:
 The final image must be based on `brycelarge/alpine-baseimage` (which provides s6-overlay) and must install `openvpn` + `privoxy` via `apk` (dynamically linked — only scripts/configs come from this repo).
 
 ```dockerfile
-ARG OPENVPN_TOOLS_REF=master
+ARG OPENVPN_TOOLS_REF=main
 
 FROM brycelarge/alpine-baseimage:3.21
 
