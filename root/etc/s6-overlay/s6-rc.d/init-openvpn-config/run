@@ -126,6 +126,13 @@ if [ -n "${LOCAL_NETWORK:-}" ]; then
     fi
 fi
 
+# Domain bypass routes (resolve domains and route via physical gateway)
+if [ -n "${OPENVPN_BYPASS_DOMAINS:-}" ]; then
+    # shellcheck source=/scripts/vpn-bypass-domains.sh
+    source /scripts/vpn-bypass-domains.sh
+    add_bypass_routes "${OPENVPN_BYPASS_DOMAINS}"
+fi
+
 # Validate config + credentials
 validation_out="$(/scripts/openvpn-config-validation.sh)"
 validation_exit=$?
@@ -186,4 +193,7 @@ if [ -n "${OPENVPN_AUTH_FILE:-}" ]; then
 fi
 if [ -n "${LOCAL_NETWORK:-}" ]; then
     printf '%s' "${LOCAL_NETWORK}" > /run/s6/container_environment/LOCAL_NETWORK
+fi
+if [ -n "${OPENVPN_BYPASS_DOMAINS:-}" ]; then
+    printf '%s' "${OPENVPN_BYPASS_DOMAINS}" > /run/s6/container_environment/OPENVPN_BYPASS_DOMAINS
 fi

@@ -34,3 +34,14 @@ for net in ${LOCAL_NETWORK//,/ }; do
     log "[OpenVPN] up.sh: adding route ${net} via ${gw} dev ${intf}"
     ip route replace "${net}" via "${gw}" dev "${intf}" 2>/dev/null || true
 done
+
+# Re-add domain bypass routes
+if [ -z "${OPENVPN_BYPASS_DOMAINS:-}" ] && [ -f /run/s6/container_environment/OPENVPN_BYPASS_DOMAINS ]; then
+    OPENVPN_BYPASS_DOMAINS="$(cat /run/s6/container_environment/OPENVPN_BYPASS_DOMAINS)"
+fi
+
+if [ -n "${OPENVPN_BYPASS_DOMAINS:-}" ]; then
+    # shellcheck source=/scripts/vpn-bypass-domains.sh
+    source /scripts/vpn-bypass-domains.sh
+    add_bypass_routes "${OPENVPN_BYPASS_DOMAINS}"
+fi
