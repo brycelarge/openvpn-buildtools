@@ -156,34 +156,11 @@ log "[OpenVPN] using config: ${OPENVPN_CONFIG_FILE}"
 debug_log "[OpenVPN] cleaning selected config"
 /scripts/openvpn-config-clean.sh "${OPENVPN_CONFIG_FILE}" || true
 
-# Provider-specific fixes on the selected config only
-cred_file="${vpn_dir}/${vpn_provider_lc}-openvpn-credentials.txt"
-case "${vpn_provider_lc}" in
-    nordvpn)
-        if grep -q '^cipher AES-256-CBC' "${OPENVPN_CONFIG_FILE}" 2>/dev/null; then
-            sed -i 's/^cipher AES-256-CBC$/cipher AES-256-GCM\ndata-ciphers AES-256-GCM/' "${OPENVPN_CONFIG_FILE}" || true
-        fi
-        sed -i "s|^auth-user-pass.*|auth-user-pass ${cred_file}|" "${OPENVPN_CONFIG_FILE}" || true
-        ;;
-    surfshark)
-        sed -i "s/AES-256-CBC/AES-128-GCM/g" "${OPENVPN_CONFIG_FILE}" || true
-        sed -i "s|auth-user-pass.*|auth-user-pass ${cred_file}|g" "${OPENVPN_CONFIG_FILE}" || true
-        ;;
-    pia)
-        sed -i "s|auth-user-pass.*|auth-user-pass ${cred_file}|g" "${OPENVPN_CONFIG_FILE}" || true
-        sed -i "s|ca ca\.rsa\.\([0-9]*\)\.crt|ca ${vpn_dir}/pia/ca.rsa.\1.crt|g" "${OPENVPN_CONFIG_FILE}" || true
-        sed -i "s|crl-verify crl\.rsa\.\([0-9]*\)\.pem|crl-verify ${vpn_dir}/pia/crl.rsa.\1.pem|g" "${OPENVPN_CONFIG_FILE}" || true
-        ;;
-    ipvanish)
-        sed -i "s|auth-user-pass.*|auth-user-pass ${cred_file}|g" "${OPENVPN_CONFIG_FILE}" || true
-        ;;
-    vyprvpn)
-        sed -i "s|auth-user-pass.*|auth-user-pass ${cred_file}|g" "${OPENVPN_CONFIG_FILE}" || true
-        ;;
-    protonvpn)
-        sed -i "s|auth-user-pass.*|auth-user-pass ${cred_file}|g" "${OPENVPN_CONFIG_FILE}" || true
-        ;;
-esac
+# Apply provider-specific fixes using shared script
+if [ -x "/scripts/openvpn-apply-provider-fixes.sh" ]; then
+    debug_log "[OpenVPN] applying provider fixes"
+    /scripts/openvpn-apply-provider-fixes.sh "${OPENVPN_CONFIG_FILE}" "${vpn_provider_lc}" || true
+fi
 
 # Persist resolved paths to s6 container environment so longruns inherit them
 mkdir -p /run/s6/container_environment

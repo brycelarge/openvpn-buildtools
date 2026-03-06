@@ -28,6 +28,13 @@ if [ -f "$CONFIG_OVERRIDE_FILE" ]; then
     if [ -n "$OVERRIDE_CONFIG" ] && [ -f "$OVERRIDE_CONFIG" ]; then
         log "[OpenVPN] using runtime override config: $OVERRIDE_CONFIG"
         OPENVPN_CONFIG_FILE="$OVERRIDE_CONFIG"
+
+        # Apply provider-specific fixes and cleanup
+        if [ -x "/scripts/openvpn-apply-provider-fixes.sh" ]; then
+            debug_log "[OpenVPN] applying provider fixes to override config"
+            /scripts/openvpn-apply-provider-fixes.sh "$OPENVPN_CONFIG_FILE" "${OPENVPN_PROVIDER:-}" || true
+        fi
+
         # Clear the override so it's only used once
         rm -f "$CONFIG_OVERRIDE_FILE"
     fi
