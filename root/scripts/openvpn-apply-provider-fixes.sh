@@ -49,10 +49,10 @@ case "$provider_lc" in
     nordvpn)
         # Update cipher from AES-256-CBC to AES-256-GCM
         if grep -q '^cipher AES-256-CBC' "$CONFIG_FILE" 2>/dev/null; then
-            # Use printf to properly insert newline
-            sed -i '/^cipher AES-256-CBC$/c\
-cipher AES-256-GCM\
-data-ciphers AES-256-GCM' "$CONFIG_FILE" || true
+            # Replace cipher line and add data-ciphers after it
+            sed -i 's/^cipher AES-256-CBC$/cipher AES-256-GCM/' "$CONFIG_FILE" || true
+            # Add data-ciphers line after cipher line
+            sed -i '/^cipher AES-256-GCM$/a data-ciphers AES-256-GCM' "$CONFIG_FILE" || true
             debug_log "[OpenVPN] updated cipher from AES-256-CBC to AES-256-GCM" 2>/dev/null || true
         fi
         # Set auth-user-pass
