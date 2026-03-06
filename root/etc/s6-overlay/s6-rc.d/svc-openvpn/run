@@ -34,6 +34,10 @@ if [ -f "$RESTART_SIGNAL_FILE" ]; then
             break
         fi
     done
+    # Clear persisted s6 env so we use original env var config (not stale switched config)
+    rm -f /run/s6/container_environment/OPENVPN_CONFIG_FILE 2>/dev/null || true
+    rm -f /var/run/s6/container_environment/OPENVPN_CONFIG_FILE 2>/dev/null || true
+    debug_log "[OpenVPN] cleared persisted s6 env files for fresh restart"
 fi
 
 # Check for runtime config override
@@ -53,17 +57,6 @@ if [ -f "$CONFIG_OVERRIDE_FILE" ]; then
             /scripts/openvpn-apply-provider-fixes.sh "$OPENVPN_CONFIG_FILE" "${OPENVPN_PROVIDER:-}" || true
         fi
 
-        # Persist the new config to s6 container environment for subsequent restarts
-        mkdir -p /run/s6/container_environment 2>/dev/null || mkdir -p /var/run/s6/container_environment 2>/dev/null || true
-        if [ -d "/run/s6/container_environment" ]; then
-            printf '%s' "$OPENVPN_CONFIG_FILE" > /run/s6/container_environment/OPENVPN_CONFIG_FILE
-            debug_log "[OpenVPN] persisted OPENVPN_CONFIG_FILE to /run/s6/container_environment"
-        fi
-        if [ -d "/var/run/s6/container_environment" ]; then
-            printf '%s' "$OPENVPN_CONFIG_FILE" > /var/run/s6/container_environment/OPENVPN_CONFIG_FILE
-            debug_log "[OpenVPN] persisted OPENVPN_CONFIG_FILE to /var/run/s6/container_environment"
-        fi
-
         # Note: Delete the switch file so it doesn't persist across restarts
         # This ensures container reboot uses original env, not switched config
         rm -f "$CONFIG_OVERRIDE_FILE"
@@ -72,18 +65,6 @@ if [ -f "$CONFIG_OVERRIDE_FILE" ]; then
     fi
 else
     debug_log "[OpenVPN] No runtime override file found"
-    # Check for persisted config from previous switch (for s6-supervise restarts)
-    if [ -z "${OPENVPN_CONFIG_FILE:-}" ]; then
-        for s6_env_file in /run/s6/container_environment/OPENVPN_CONFIG_FILE /var/run/s6/container_environment/OPENVPN_CONFIG_FILE; do
-            if [ -f "$s6_env_file" ]; then
-                OPENVPN_CONFIG_FILE=$(cat "$s6_env_file" 2>/dev/null | tr -d '\n')
-                if [ -n "$OPENVPN_CONFIG_FILE" ]; then
-                    log "[OpenVPN] using persisted config from s6 env: $OPENVPN_CONFIG_FILE"
-                    break
-                fi
-            fi
-        done
-    fi
 fi
 
 # Fall back to standard env var if no override
