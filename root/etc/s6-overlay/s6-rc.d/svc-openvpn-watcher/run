@@ -1,0 +1,29 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+
+RESTART_SIGNAL_FILE="/tmp/.openvpn-restart-signal"
+
+echo "[OpenVPN Watcher] monitoring for restart signals at $RESTART_SIGNAL_FILE"
+
+while true; do
+    if [ -f "$RESTART_SIGNAL_FILE" ]; then
+        echo "[OpenVPN Watcher] restart signal detected, triggering OpenVPN restart"
+        rm -f "$RESTART_SIGNAL_FILE"
+        
+        # Kill OpenVPN process
+        pkill -TERM openvpn 2>/dev/null || true
+        
+        # Wait for it to die
+        for i in 1 2 3 4 5; do
+            if pgrep openvpn >/dev/null 2>&1; then
+                sleep 1
+            else
+                break
+            fi
+        done
+        
+        echo "[OpenVPN Watcher] OpenVPN killed, s6 will restart it with new config"
+    fi
+    
+    sleep 2
+done

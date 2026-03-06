@@ -20,26 +20,6 @@ if [ "${VPN_ENABLED:-false}" != "true" ]; then
     exec sleep infinity
 fi
 
-# Check for restart signal from backend (written by non-root user)
-RESTART_SIGNAL_FILE="/tmp/.openvpn-restart-signal"
-if [ -f "$RESTART_SIGNAL_FILE" ]; then
-    log "[OpenVPN] restart signal detected, killing existing openvpn process"
-    rm -f "$RESTART_SIGNAL_FILE"
-    pkill -TERM openvpn 2>/dev/null || true
-    # Wait for process to die
-    for i in 1 2 3 4 5; do
-        if pgrep openvpn >/dev/null 2>&1; then
-            sleep 1
-        else
-            break
-        fi
-    done
-    # Clear persisted s6 env so we use original env var config (not stale switched config)
-    rm -f /run/s6/container_environment/OPENVPN_CONFIG_FILE 2>/dev/null || true
-    rm -f /var/run/s6/container_environment/OPENVPN_CONFIG_FILE 2>/dev/null || true
-    debug_log "[OpenVPN] cleared persisted s6 env files for fresh restart"
-fi
-
 # Check for runtime config override
 # This file can be written by external tools to change VPN config dynamically
 CONFIG_OVERRIDE_FILE="/tmp/.openvpn-switch-config"
