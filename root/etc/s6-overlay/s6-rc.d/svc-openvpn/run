@@ -81,8 +81,18 @@ fi
 debug_log "[OpenVPN] OPENVPN_CONFIG_FILE=${OPENVPN_CONFIG_FILE}"
 log "[OpenVPN] starting openvpn"
 
+# Debug: show config file head
+if [ -f "${OPENVPN_CONFIG_FILE}" ]; then
+    debug_log "[OpenVPN] Config file exists, size: $(wc -c <"${OPENVPN_CONFIG_FILE}") bytes"
+    debug_log "[OpenVPN] Config head: $(head -5 "${OPENVPN_CONFIG_FILE}" | tr '\n' ' ')"
+else
+    log "[OpenVPN] ERROR: Config file not found: ${OPENVPN_CONFIG_FILE}"
+    exec sleep 5
+fi
+
 log_dir="${VPN_LOG_DIR:-/app/config/logs/openvpn}"
 mkdir -p "${log_dir}"
 chown -R tuliprox:tuliprox "${log_dir}" 2>/dev/null || true
 
-exec openvpn "${openvpn_args[@]}" 2>&1 | s6-log -b n20 s1000000 T "${log_dir}"
+# Don't use exec so we can capture exit code and log it
+openvpn "${openvpn_args[@]}" 2>&1 | s6-log -b n20 s1000000 T "${log_dir}"

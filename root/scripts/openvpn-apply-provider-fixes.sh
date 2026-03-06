@@ -49,20 +49,23 @@ case "$provider_lc" in
     nordvpn)
         # Update cipher from AES-256-CBC to AES-256-GCM
         if grep -q '^cipher AES-256-CBC' "$CONFIG_FILE" 2>/dev/null; then
-            sed -i 's/^cipher AES-256-CBC$/cipher AES-256-GCM\ndata-ciphers AES-256-GCM/' "$CONFIG_FILE" || true
+            # Use printf to properly insert newline
+            sed -i '/^cipher AES-256-CBC$/c\
+cipher AES-256-GCM\
+data-ciphers AES-256-GCM' "$CONFIG_FILE" || true
             debug_log "[OpenVPN] updated cipher from AES-256-CBC to AES-256-GCM" 2>/dev/null || true
         fi
         # Set auth-user-pass
         sed -i "s|^auth-user-pass.*|auth-user-pass ${cred_file}|" "$CONFIG_FILE" || true
         ;;
-    
+
     surfshark)
         # Update cipher
         sed -i "s/AES-256-CBC/AES-128-GCM/g" "$CONFIG_FILE" || true
         # Set auth-user-pass
         sed -i "s|auth-user-pass.*|auth-user-pass ${cred_file}|g" "$CONFIG_FILE" || true
         ;;
-    
+
     pia)
         # Set auth-user-pass
         sed -i "s|auth-user-pass.*|auth-user-pass ${cred_file}|g" "$CONFIG_FILE" || true
@@ -70,12 +73,12 @@ case "$provider_lc" in
         sed -i "s|ca ca\.rsa\.\([0-9]*\)\.crt|ca ${VPN_DIR}/pia/ca.rsa.\1.crt|g" "$CONFIG_FILE" || true
         sed -i "s|crl-verify crl\.rsa\.\([0-9]*\)\.pem|crl-verify ${VPN_DIR}/pia/crl.rsa.\1.pem|g" "$CONFIG_FILE" || true
         ;;
-    
+
     ipvanish|vyprvpn|protonvpn)
         # Set auth-user-pass
         sed -i "s|auth-user-pass.*|auth-user-pass ${cred_file}|g" "$CONFIG_FILE" || true
         ;;
-    
+
     custom)
         # Just set auth-user-pass for custom configs
         if [ -f "$cred_file" ]; then
