@@ -56,6 +56,18 @@ if [ -f "$CONFIG_OVERRIDE_FILE" ]; then
     fi
 else
     debug_log "[OpenVPN] No runtime override file found"
+    # Check for persisted config from previous switch (for s6-supervise restarts)
+    if [ -z "${OPENVPN_CONFIG_FILE:-}" ]; then
+        for s6_env_file in /run/s6/container_environment/OPENVPN_CONFIG_FILE /var/run/s6/container_environment/OPENVPN_CONFIG_FILE; do
+            if [ -f "$s6_env_file" ]; then
+                OPENVPN_CONFIG_FILE=$(cat "$s6_env_file" 2>/dev/null | tr -d '\n')
+                if [ -n "$OPENVPN_CONFIG_FILE" ]; then
+                    log "[OpenVPN] using persisted config from s6 env: $OPENVPN_CONFIG_FILE"
+                    break
+                fi
+            fi
+        done
+    fi
 fi
 
 # Fall back to standard env var if no override
