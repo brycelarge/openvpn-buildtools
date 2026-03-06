@@ -1,5 +1,14 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
+#
+# Runtime VPN Config Switching Support
+#
+# This modification allows changing VPN config at runtime by:
+# 1. Writing the desired config path to ${VPN_DIR}/.switch-config
+# 2. Sending SIGHUP or restarting the openvpn service
+#
+# The script checks for the override file on each restart, enabling
+# hot-swapping VPN servers without container restart.
 
 set -euo pipefail
 
@@ -11,7 +20,20 @@ if [ "${VPN_ENABLED:-false}" != "true" ]; then
     exec sleep infinity
 fi
 
-# OPENVPN_CONFIG_FILE is written to the s6 container environment by init-openvpn-config
+# Check for runtime config override
+# This file can be written by external tools to change VPN config dynamically
+CONFIG_OVERRIDE_FILE="${VPN_DIR:-/data/config/openvpn}/.switch-config"
+if [ -f "$CONFIG_OVERRIDE_FILE" ]; then
+    OVERRIDE_CONFIG=$(cat "$CONFIG_OVERRIDE_FILE" 2>/dev/null | tr -d '\n')
+    if [ -n "$OVERRIDE_CONFIG" ] && [ -f "$OVERRIDE_CONFIG" ]; then
+        log "[OpenVPN] using runtime override config: $OVERRIDE_CONFIG"
+        OPENVPN_CONFIG_FILE="$OVERRIDE_CONFIG"
+        # Clear the override so it's only used once
+        rm -f "$CONFIG_OVERRIDE_FILE"
+    fi
+fi
+
+# Fall back to standard env var if no override
 if [ -z "${OPENVPN_CONFIG_FILE:-}" ]; then
     log "[OpenVPN] OPENVPN_CONFIG_FILE not set — init-openvpn-config may have failed"
     exec sleep infinity
