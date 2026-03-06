@@ -40,7 +40,7 @@ case "$provider_lc" in
         cred_file="${VPN_DIR}/custom-openvpn-credentials.txt"
         ;;
     *)
-        cred_file="${VPN_DIR}/${provider_lc}/${provider_lc}-openvpn-credentials.txt"
+        cred_file="${VPN_DIR}/${provider_lc}-openvpn-credentials.txt"
         ;;
 esac
 
